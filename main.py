@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 pygame.init()
 
-bg_image = pygame.image.load("background.jpg")
+bg_image = pygame.image.load("./image/background.png")
 bg_image = pygame.transform.scale(bg_image, (bg_image.get_width() * 0.5, bg_image.get_height() * 0.5))
 screen = pygame.display.set_mode((bg_image.get_width(), bg_image.get_height()))
 
-enemy_image = pygame.image.load("zombie.png")
+enemy_image = pygame.image.load("./image/zombie.png")
 enemy_image = pygame.transform.scale(enemy_image, (enemy_image.get_width() * 0.3, enemy_image.get_height() * 0.3))
 
 score_value = 0
@@ -35,11 +35,10 @@ ENEMY_RADIUS = min(enemy_image.get_width(), enemy_image.get_height()) // 2.5
 ENEMY_COLOR = (255, 0, 0)
 GENERATE_ENEMY, APPEAR_INTERVAL = pygame.USEREVENT + 1, 2 * 1000
 pygame.time.set_timer(GENERATE_ENEMY, APPEAR_INTERVAL)
-AGE_ENEMY, AGE_INTERVAL = pygame.USEREVENT + 2, 1 * 1000
-pygame.time.set_timer(AGE_ENEMY, AGE_INTERVAL)
+# AGE_ENEMY, AGE_INTERVAL = pygame.USEREVENT + 2, 1 * 1000
+# pygame.time.set_timer(AGE_ENEMY, AGE_INTERVAL)
 
-possible_enemy_pos = [(190, 100), (470, 100), (770, 100), (150, 220), (475, 220), (770, 220), (130, 370), (475, 370),
-                      (805, 370)]
+possible_enemy_pos = [(400, 120), (400, 270), (400, 420), (680, 120), (680, 270), (680, 420), (140, 120), (140, 270), (140, 420) ]
 
 
 def check_exist(pos):
@@ -101,13 +100,10 @@ while running:
             click_pos = pygame.mouse.get_pos()
             print(click_pos)
             check_enemies_collision(click_pos, enemies)
-        if event.type == AGE_ENEMY:
-            age_enemies()
-            remove_died_enemies()
         if event.type == GENERATE_ENEMY:
             if len(enemies) < NUM_COL * NUM_ROW:
                 new_pos = generate_next_enemy_pos()
-                # print(new_pos)
+                print(new_pos)
                 enemies.append(Enemy(new_pos[0], new_pos[1]))
 
     screen.blit(bg_image, (0, 0))
