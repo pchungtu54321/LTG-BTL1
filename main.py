@@ -1,24 +1,37 @@
 import pygame
 import random
 import math
+from enum import Enum
 from dataclasses import dataclass
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+DARK = (24, 9, 48)
 
 pygame.init()
+clock = pygame.time.Clock()
+
+#import sprite, assets
+saver_image = pygame.image.load("./image/SCREENSAVER.png")
 
 bg_image = pygame.image.load("./image/background.png")
-bg_image = pygame.transform.scale(bg_image, (bg_image.get_width() * 0.5, bg_image.get_height() * 0.5))
-screen = pygame.display.set_mode((bg_image.get_width(), bg_image.get_height()))
+bg_image = pygame.transform.scale(bg_image, (saver_image.get_width(), saver_image.get_height()))
 
-enemy_image = pygame.image.load("./image/zombie.png")
-enemy_image = pygame.transform.scale(enemy_image, (enemy_image.get_width() * 0.3, enemy_image.get_height() * 0.3))
+enemy_image = pygame.image.load("./image/character_1.png")
+enemy_image = pygame.transform.scale(enemy_image, (enemy_image.get_width(), enemy_image.get_height()))
 
+font = pygame.font.SysFont('jollylodger', 32)
+
+#setting scale window
+pygame.display.set_caption("Zombie Smash Game")
+screen = pygame.display.set_mode((saver_image.get_width(), saver_image.get_height()))
+
+#coordinates of score display
 score_value = 0
-font = pygame.font.Font('freesansbold.ttf', 32)
-
 textX = 10
 textY = 10
 
+#
 enemies = []
 
 NUM_COL = 3
@@ -33,13 +46,14 @@ class Enemy:
 
 ENEMY_RADIUS = min(enemy_image.get_width(), enemy_image.get_height()) // 2.5
 ENEMY_COLOR = (255, 0, 0)
-GENERATE_ENEMY, APPEAR_INTERVAL = pygame.USEREVENT + 1, 2 * 1000
+GENERATE_ENEMY = pygame.USEREVENT + 1
+APPEAR_INTERVAL = 2 * 1000
 pygame.time.set_timer(GENERATE_ENEMY, APPEAR_INTERVAL)
+
 # AGE_ENEMY, AGE_INTERVAL = pygame.USEREVENT + 2, 1 * 1000
 # pygame.time.set_timer(AGE_ENEMY, AGE_INTERVAL)
 
-possible_enemy_pos = [(400, 120), (400, 270), (400, 420), (680, 120), (680, 270), (680, 420), (140, 120), (140, 270), (140, 420) ]
-
+possible_enemy_pos = [(70, 25), (70, 210), (70, 415), (380, 25), (380, 210), (380, 415), (710, 25), (710, 210), (710, 415) ]
 
 def check_exist(pos):
     for enemy in enemies:
@@ -91,26 +105,6 @@ def remove_died_enemies():
         if enemy.life == 0:
             enemies.remove(enemy)
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.MOUSEBUTTONUP:
-            click_pos = pygame.mouse.get_pos()
-            print(click_pos)
-            check_enemies_collision(click_pos, enemies)
-        if event.type == GENERATE_ENEMY:
-            if len(enemies) < NUM_COL * NUM_ROW:
-                new_pos = generate_next_enemy_pos()
-                print(new_pos)
-                enemies.append(Enemy(new_pos[0], new_pos[1]))
-
-    screen.blit(bg_image, (0, 0))
-    draw_enemies()
-    show_score(textX, textY)
-    pygame.display.update()
-
 class SoundEffect:
     def __init__(self):
         self.mainTrack = pygame.mixer.music.load("sounds/themesong.wav")
@@ -144,3 +138,57 @@ class SoundEffect:
 
     def stopLevelUp(self):
         self.levelSound.stop()
+
+#FSM
+class GameState(Enum):
+    SAVER_SCREEN = 1
+    GAME_SCREEN = 2
+    GAMEOVER_SCREEN = 3
+current_state = GameState.SAVER_SCREEN
+
+start = font.render("START", True, (255,255,255))
+
+running = True
+while running:
+    #saver screen
+    if current_state == GameState.SAVER_SCREEN:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: # quit game
+                running = False
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                click_pos = pygame.mouse.get_pos() 
+                if (click_pos[0] > (saver_image.get_width() - 150) // 2) and (click_pos[0] < (((saver_image.get_width() - 150) // 2) + 150)) and (click_pos[1] > 500) and (click_pos[1] < 500 + 50):
+                    current_state = GameState.GAME_SCREEN
+
+        screen.blit(saver_image, (0, 0))
+
+        pygame.draw.rect(screen, DARK, ((saver_image.get_width() - 150) // 2, 500, 150, 50)) # 2 CON SO DAU TIEN LA DIEM TREN CUNG BEN TRAI
+        pygame.draw.rect(screen, WHITE, ((saver_image.get_width() - 150) // 2, 500, 150, 50), 1) # 2 CON SO DAU TIEN LA DIEM TREN CUNG BEN TRAI
+        screen.blit(start, ((saver_image.get_width() - 60) // 2, 505))
+
+    #game play
+    if current_state == GameState.GAME_SCREEN:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: # quit game
+                running = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN: # mouse click
+                click_pos = pygame.mouse.get_pos() 
+                print(click_pos)
+                check_enemies_collision(click_pos, enemies)
+
+            if event.type == GENERATE_ENEMY: # zombie spawn
+                if len(enemies) < NUM_COL * NUM_ROW:
+                    new_pos = generate_next_enemy_pos()
+                    # print(new_pos)
+                    enemies.append(Enemy(new_pos[0], new_pos[1]))
+        screen.blit(bg_image, (0, 0))
+        draw_enemies()
+        show_score(textX, textY)
+
+
+    pygame.display.update()
+    clock.tick(60)
+
+
