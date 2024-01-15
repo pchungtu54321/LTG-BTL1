@@ -85,12 +85,13 @@ class Game: # this is the main game class
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(TEXT)
 
-        self.game_state_manager = gameStateManager('game_play')
+        self.game_state_manager = gameStateManager('intro')
         self.intro = Intro(self.screen, self.game_state_manager)
         self.menu = Menu(self.screen, self.game_state_manager)
         self.game_play = GamePlay(self.screen, self.game_state_manager)
+        self.game_over = GameOver(self.screen, self.game_state_manager)
 
-        self.states = {'intro': self.intro, 'menu': self.menu, 'game_play': self.game_play}
+        self.states = {'intro': self.intro, 'menu': self.menu, 'game_play': self.game_play, 'game_over': self.game_over}
 
     def run(self):
         
@@ -247,6 +248,8 @@ class GamePlay:
         self.display = display # similar to screen variable
         self.game_state_manager = game_state_manager
 
+        self.TIMER = 30 # game play duration
+
         self.NUM_ROW = 3
         self.NUM_COL = 3
 
@@ -269,60 +272,59 @@ class GamePlay:
         self.zombies_position = [(142, 125), (405, 125), (659, 125), (142, 372), (405, 372), (659, 372), (142, 620), (405, 620), (659, 620)] # init a list to store position of zombie
 
         pygame.time.set_timer(self.GENERATE_ZOMBIE, self.APPEAR_INTERVAL)
+        pygame.time.set_timer(pygame.USEREVENT, 1000)
 
-
-    def check_exist(self, pos): # if position equal with current zombie appear on the screen return true
+    def checkExist(self, pos): # if position equal with current zombie appear on the screen return true
         for zombie in self.zombies:
             if pos == (zombie.x, zombie.y):
                 return True
         return False
 
-    def generate_next_enemy_pos(self):
+    def generateNextEnemyPos(self):
         new_pos = () # init an empty tuple
         while True:
             grid_index = random.randint(0, self.NUM_ROW * self.NUM_COL - 1) # random a number from 0 to 8
             new_pos = self.zombies_position[grid_index]
-            if not self.check_exist(new_pos):
+            if not self.checkExist(new_pos):
                 break
         return new_pos, pygame.time.get_ticks()  #return position that able to generate new zombie and time
     
-    def draw_enemies(self):
+    def drawZombies(self):
         for zombie in self.zombies:
             zombie_rect = image.zombie.get_rect()
             zombie_center = zombie_rect.center
             self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
 
-    def show_score(self, y):
-        global score_value
-        score = self.font_sub.render("Score: " + str(self.score_value), True, (255, 255, 255))
-        text_rect = score.get_rect(center=(SCREEN_WIDTH // 2, y))
-        self.display.blit(score, text_rect)
-
-    def check_enemy_collision(self, clickX, clickY, enemyX, enemyY):
+    def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
         enemy_center = (enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
         distance = math.sqrt(math.pow(enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
         return distance < self.ZOMBIE_RADIUS
     
-    def check_enemies_collision(self, click_pos):
+    def checkZombiesCollision(self, click_pos):
         for zombie in self.zombies:
-            if self.check_enemy_collision(click_pos[0], click_pos[1], zombie.x, zombie.y):
+            if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y):
                 self.score_value
                 self.score_value += 1
                 self.zombies.remove(zombie)
 
                 sound_effects.playLevelUp()
 
-    def age_enemies(self):
+    def timerZombie(self):
         for zombie in self.zombies:
             zombie.life = max(0, zombie.life - (pygame.time.get_ticks() - zombie.time_of_birth))
             if zombie.life == 0:
                 self.zombies.remove(zombie)
 
-    def remove_died_enemies(self):
-        for zombie in self.zombies:
-            if zombie.life == 0:
-                self.zombies.remove(zombie)
+    def displayScore(self):
+        score = self.font_sub.render("S c o r e :  " + str(self.score_value), True, WHITE)
+        text_rect = score.get_rect(center=(SCREEN_WIDTH // 2, 775))
+        self.display.blit(score, text_rect)
+
+    def displayTime(self):
+        time = self.font_sub.render("T i m e :  " + str(self.TIMER), True, WHITE)
+        text_rect = time.get_rect(center=(680, 775))
+        self.display.blit(time, text_rect)
 
     def run(self):
         for event in pygame.event.get():
@@ -332,20 +334,26 @@ class GamePlay:
 
             if event.type == pygame.MOUSEBUTTONDOWN: # mouse click
                 click_pos = pygame.mouse.get_pos()
-                self.check_enemies_collision(click_pos)
+                self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
-                    new_pos, time_of_birth = self.generate_next_enemy_pos()
+                    new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(self.Zombie(x=new_pos[0], y=new_pos[1], life=self.ZOMBIE_LIFE_SPANS, time_of_birth=time_of_birth))
+
+            if event.type == pygame.USEREVENT: # Timer
+                self.TIMER -= 1
+                if self.TIMER == 0:
+                    self.game_state_manager.setState('game_over')
 
         self.display.blit(image.gameplay_background, (0, 0))
         image.setting_icon = pygame.transform.scale(image.setting_icon, (35, 37))
         self.display.blit(image.setting_icon, (25, 25))
 
-        self.age_enemies()
-        self.draw_enemies()
-        self.show_score(775)
+        self.timerZombie()
+        self.drawZombies()
+        self.displayScore()
+        self.displayTime()
 
         # cursor customize
         pygame.mouse.set_visible(False) # make cursor invisible
@@ -354,8 +362,17 @@ class GamePlay:
 
         
 class GameOver:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, display, game_state_manager):
+        self.display = display # similar to screen variable
+        self.game_state_manager = game_state_manager
+
+    def run (self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        
+        self.display.fill(WHITE)
 
 class gameStateManager:
     def __init__(self, current_state):
