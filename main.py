@@ -2,32 +2,29 @@ import pygame
 import sys
 import math
 import random
-from enum import Enum
+import os
 from dataclasses import dataclass
+
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-DARK = (24, 9, 48)
-GREY = (182, 187, 196)
+DARK = (34, 9, 44)
+MARGENTA = (135, 35, 65)
+DARKORANGE = (190, 49, 68)
+ORANGE = (240, 89, 65)
+RED = (184, 0, 0)
+GREY =  ( 77, 63, 90)
 
-# game initiallize
-clock = pygame.time.Clock()
-pygame.init()
-pygame.mixer.init()
-
-# window setting
-width, height = 1000, 668
-screen = pygame.display.set_mode((width, height))
-text = "Smash The Zombie"
-pygame.display.set_caption(text)
-
-# font setting
-font = pygame.font.SysFont('jollylodger', 50)
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 800
+FPS = 60
+TEXT = "Smash The Zombie"
 
 # import assets
 # sound
 class SoundEffect:
     def __init__(self):
+        pygame.mixer.init()
         self.typingSound = pygame.mixer.Sound("sounds/typing.wav")
         self.mainTrack = pygame.mixer.Sound("sounds/themesong.wav")
         self.fireSound = pygame.mixer.Sound("sounds/fire.wav")
@@ -69,226 +66,306 @@ sound_effects = SoundEffect()
 # image
 class Sprite:
     def __init__(self):
-        self.saver_image = pygame.image.load("./image/SCREENSAVER.png")
-        self.bg_image = pygame.image.load("./image/background.png")
-        self.enemy_image = pygame.image.load("./image/character_1.png")
+        self.menu = pygame.image.load("./Assets/MENU_SCREEN.png")
+        self.gameplay_background = pygame.image.load("./Assets/GAME_SCREEN.png")
+        self.zombie = pygame.image.load("./Assets/ZOMBIE.png")
+        self.play_game_button = pygame.image.load("./Assets/PLAYGAME.png")
+        self.sword = pygame.image.load("./Assets/SWORD.png")   
+        self.setting_icon = pygame.image.load("./Assets/SETTING_ICON.png")
 image = Sprite()
 
 
-# intro
-# time configuration
-interval = 500  # time to display the first letter
-char_delay = 100  # time between characters
-current_time = pygame.time.get_ticks()
-next_char_time = current_time + interval
-char_index = 0
-# fade out ef
-fade_surface = pygame.Surface((width, height))
-fade_surface.fill(BLACK)
-fade_alpha = 0
+class Game: # this is the main game class
+    def __init__(self):
+        # game initiallize
+        self.clock = pygame.time.Clock()
+        pygame.init()
 
-# saver screen 
-button_hover = False
-button_width = 150
-button_height = 75
-button_rect = pygame.Rect((width - 150) // 2, 500, button_width, button_height)
+        # window setting
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption(TEXT)
 
-# gameplay screen
-#coordinates of score display
-score_value = 0
-textX = 10
-textY = 10
+        self.game_state_manager = gameStateManager('game_play')
+        self.intro = Intro(self.screen, self.game_state_manager)
+        self.menu = Menu(self.screen, self.game_state_manager)
+        self.game_play = GamePlay(self.screen, self.game_state_manager)
 
-enemies = []
+        self.states = {'intro': self.intro, 'menu': self.menu, 'game_play': self.game_play}
 
-NUM_COL = 3
-NUM_ROW = 3
+    def run(self):
+        
+        while True:
 
-ENEMY_LIFE_SPAN = 100 * 1000
-@dataclass
-class Enemy:
-    x: int
-    y: int
-    life: int = ENEMY_LIFE_SPAN
-    time_of_birth: int = 0  
+            self.states[self.game_state_manager.getState()].run() # evoke run() function in class
 
-ENEMY_RADIUS = min(image.enemy_image.get_width(), image.enemy_image.get_height()) // 2.5
-ENEMY_COLOR = (255, 0, 0)
-GENERATE_ENEMY = pygame.USEREVENT + 1
-APPEAR_INTERVAL = 2 * 1000
-pygame.time.set_timer(GENERATE_ENEMY, APPEAR_INTERVAL)
-
-# AGE_ENEMY, AGE_INTERVAL = pygame.USEREVENT + 2, 1 * 1000
-# pygame.time.set_timer(AGE_ENEMY, AGE_INTERVAL)
-
-possible_enemy_pos = [(70, 25), (70, 210), (70, 415), (380, 25), (380, 210), (380, 415), (710, 25), (710, 210), (710, 415)]
+            pygame.display.update()
+            self.clock.tick(FPS)
 
 
-def draw_button(rect_color, text_color, x, y, width, height, text, hover):
-    if hover:
-        pygame.draw.rect(screen, WHITE, button_rect)
-        text_surface = font.render(text, True, BLACK)
+class Intro:
+    def __init__(self, display, game_state_manager):
+        self.display = display # similar to screen variable
+        self.game_state_manager = game_state_manager
 
-    else:
-        pygame.draw.rect(screen, rect_color, button_rect)
-        text_surface = font.render(text, True, text_color)
+        # time configuration
+        self.interval = 500  # time to display the first letter
+        self.char_delay = 100  # time between characters
+        self.current_time = pygame.time.get_ticks()
+        self.next_char_time = self.current_time + self.interval
+        self.char_index = 0
+        # fade out ef
+        self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.fade_surface.fill(BLACK)
+        self.fade_alpha = 0
 
-    # draw button
-    text_rect = text_surface.get_rect(center=button_rect.center)
-    screen.blit(text_surface, text_rect)
+        self.font = pygame.font.SysFont('jollylodger', 50)
 
-
-def check_exist(pos):
-    for enemy in enemies:
-        if pos == (enemy.x, enemy.y):
-            return True
-    return False
-
-def generate_next_enemy_pos():
-    new_pos = ()
-    while True:
-        grid_index = random.randint(0, NUM_ROW * NUM_COL - 1)
-        new_pos = possible_enemy_pos[grid_index]
-        if not check_exist(new_pos):
-            break
-    return new_pos, pygame.time.get_ticks()  # Trả về cả vị trí và thời gian tạo nhân vật
-
-def draw_enemies():
-    for enemy in enemies:
-        screen.blit(image.enemy_image, (enemy.x, enemy.y))
-
-def show_score(x, y):
-    global score_value
-    score = font.render("Score: " + str(score_value), True, (255, 255, 255))
-    screen.blit(score, (x, y))
-
-def check_enemy_collision(clickX, clickY, enemyX, enemyY):
-    enemyX, enemyY = enemyX + ENEMY_RADIUS, enemyY + ENEMY_RADIUS
-    distance = math.sqrt(math.pow(enemyX - clickX, 2) + (math.pow(enemyY - clickY, 2)))
-    return distance < ENEMY_RADIUS
-
-def check_enemies_collision(click_pos, enemies):
-    for enemy in enemies:
-        if check_enemy_collision(click_pos[0], click_pos[1], enemy.x, enemy.y):
-            global score_value
-            score_value += 1
-            enemies.remove(enemy)
-
-            sound_effects.playLevelUp()
-
-def age_enemies():
-    for enemy in enemies:
-        enemy.life = max(0, enemy.life - (pygame.time.get_ticks() - enemy.time_of_birth))
-        if enemy.life == 0:
-            enemies.remove(enemy)
-
-def remove_died_enemies():
-    for enemy in enemies:
-        if enemy.life == 0:
-            enemies.remove(enemy)
-
-
-# game state
-class Game_State(Enum):
-    INTRO_SCREEN = 0
-    SAVER_SCREEN = 1
-    GAME_SCREEN = 2
-    GAMEOVER_SCREEN = 3
-current_game_state = Game_State.INTRO_SCREEN
-# game loop
-running = True
-while running:
-    if current_game_state == Game_State.INTRO_SCREEN:
+    def run(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT: # quit game
-                running = False
-            
-            if (event.type == pygame.MOUSEBUTTONDOWN) or (event.type == pygame.KEYDOWN):
-                current_game_state = Game_State.SAVER_SCREEN
-                sound_effects.mainTrack.play(-1)
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                    
+
+        if any(pygame.key.get_pressed()) or any(pygame.mouse.get_pressed()):
+            self.game_state_manager.setState('menu') #switch screen
+            sound_effects.mainTrack.play(-1)
 
         # take time since the game run
-        current_time = pygame.time.get_ticks()
+        self.current_time = pygame.time.get_ticks()
 
         # character iterator
-        if current_time >= next_char_time and char_index < len(text):
-            char_index += 1
-            next_char_time = current_time + char_delay
+        if self.current_time >= self.next_char_time and self.char_index < len(TEXT):
+            self.char_index += 1
+            self.next_char_time = self.current_time + self.char_delay
 
             sound_effects.playTyping()
 
         # output
-        screen.fill(BLACK)
-        rendered_text = font.render(text[:char_index], True, WHITE)
-        text_rect = rendered_text.get_rect(center=(width // 2, height // 2))
-        screen.blit(rendered_text, text_rect)
+        self.display.fill(BLACK)
+        rendered_text = self.font.render(TEXT[:self.char_index], True, WHITE)
+        text_rect = rendered_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        self.display.blit(rendered_text, text_rect)
 
         # fade to black ef
-        if char_index >= len(text):
+        if self.char_index >= len(TEXT):
             # increase opacity
-            fade_alpha += 2
-            fade_surface.set_alpha(fade_alpha)
+            self.fade_alpha += 2
+            self.fade_surface.set_alpha(self.fade_alpha)
 
-            if fade_alpha > 255:
-                current_game_state = Game_State.SAVER_SCREEN
+            if self.fade_alpha > 255:
+                self.game_state_manager.setState('menu')
                 sound_effects.mainTrack.play(-1) 
 
             # output
-            screen.blit(fade_surface, (0, 0))
+            self.display.blit(self.fade_surface, (0, 0))
 
             sound_effects.stopTyping()
 
-        
-    if current_game_state == Game_State.SAVER_SCREEN:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: # quit game
-                running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                click_pos = pygame.mouse.get_pos()
-                if (click_pos[0] > (width - button_width) // 2) and (click_pos[0] < (((width - button_width) // 2) + button_width)) and (click_pos[1] > 500) and (click_pos[1] < (500 + button_height)):
-                    current_game_state = Game_State.GAME_SCREEN
+class Menu:
+    def __init__(self, display, game_state_manager):
+        self.display = display # similar to screen variable
+        self.game_state_manager = game_state_manager
 
-            if event.type == pygame.MOUSEMOTION:
-                # Kiểm tra nếu chuột nằm trong vùng nút
-                button_hover = button_rect.collidepoint(event.pos)
+        self.font_main = pygame.font.SysFont('trashhand', 70)
+        self.font_sub = pygame.font.SysFont('trashhand', 40)
 
-        # output
-        screen.blit(image.saver_image, (0, 0))
-        draw_button(DARK, WHITE, (width - 150) // 2, 500, button_width, button_height, "START", button_hover)
+        self.text_play = self.font_main.render("P L A Y", True, DARK)
+        self.text_game = self.font_main.render("G A M E",  True, DARK)
 
+        self.text_how = self.font_sub.render("H O W", True, WHITE)
+        self.text_to_play = self.font_sub.render("T O  P L A Y", True, WHITE)
 
-    if current_game_state == Game_State.GAME_SCREEN:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: # quit game
-                running = False
+        self.text_quit = self.font_sub.render("Q U I T", True, DARK)
+        self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
 
-            if event.type == pygame.MOUSEBUTTONDOWN: # mouse click
-                click_pos = pygame.mouse.get_pos() 
-                # print(click_pos)
-                check_enemies_collision(click_pos, enemies)
-
-            if event.type == GENERATE_ENEMY:
-                if len(enemies) < NUM_COL * NUM_ROW:
-                    new_pos, time_of_birth = generate_next_enemy_pos()
-                    enemies.append(Enemy(new_pos[0], new_pos[1], ENEMY_LIFE_SPAN, time_of_birth))
-
-        age_enemies()
-        screen.blit(image.bg_image, (0, 0))
-        draw_enemies()
-        show_score(textX, textY)
-
-
-
-    if current_game_state == Game_State.GAMEOVER_SCREEN:
+    def run(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                pygame.quit()
+                sys.exit()
 
-        screen.fill(BLACK)
+        self.display.blit(image.menu, (0, 0))
 
-    pygame.display.update()
-    clock.tick(60)
+        self.display.blit(self.text_play, (438,597))
+        self.display.blit(self.text_game, (425, 660))
 
-pygame.quit()
-sys.exit()
+        self.display.blit(self.text_how, (155, 558))
+        self.display.blit(self.text_to_play, (116, 608))
+
+        self.display.blit(self.text_quit, (31, 467))
+        self.display.blit(self.text_high_score, (580, 456))
+            
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        keys = pygame.mouse.get_pressed()
+
+        if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):
+            self.display.blit(image.play_game_button, (289, 564))
+            if keys[0]:
+                self.game_state_manager.setState('game_play')
+
+        if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644):
+            self.text_how = self.font_sub.render("H O W", True, DARK)
+            self.text_to_play = self.font_sub.render("T O  P L A Y", True, DARK)
+            # if keys[0]:
+                # self.game_state_manager.setState('')
+        else:
+            self.text_how = self.font_sub.render("H O W", True, WHITE)
+            self.text_to_play = self.font_sub.render("T O  P L A Y", True, WHITE)
+
+        if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):
+            self.text_quit = self.font_sub.render("Q U I T", True, RED)
+            if keys[0]:
+                pygame.quit()
+                sys.exit()
+                
+        else: 
+            self.text_quit = self.font_sub.render("Q U I T", True, DARK)
+
+        if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491):
+            self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, ORANGE)
+            # if keys[0]:
+                # self.game_state_manager.setState('')
+        else:
+            self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
+
+class HowToPlay:
+    def __init__(self) -> None:
+        pass
+
+    
+class GamePlay:
+    class Zombie:
+        def __init__(self, x, y, life, time_of_birth):
+            self.x = x
+            self.y = y
+            self.life = life
+            self.time_of_birth = time_of_birth
+
+    def __init__(self, display, game_state_manager):
+        self.display = display # similar to screen variable
+        self.game_state_manager = game_state_manager
+
+        self.NUM_ROW = 3
+        self.NUM_COL = 3
+
+        self.cursor_img = image.sword
+        self.cursor_img_rect = self.cursor_img.get_rect()
+
+        self.font_main = pygame.font.SysFont('trashhand', 70)
+        self.font_sub = pygame.font.SysFont('trashhand', 40)
+
+        self.score_value = 0
+        self.smash_times = 0
+
+        self.zombies= [] #init a list to store current zombies on the screen
+        
+        self.ZOMBIE_LIFE_SPANS = 100 * 1000
+        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) 
+        self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
+        self.APPEAR_INTERVAL = 2 * 1000
+
+        self.zombies_position = [(142, 125), (405, 125), (659, 125), (142, 372), (405, 372), (659, 372), (142, 620), (405, 620), (659, 620)] # init a list to store position of zombie
+
+        pygame.time.set_timer(self.GENERATE_ZOMBIE, self.APPEAR_INTERVAL)
+
+
+    def check_exist(self, pos): # if position equal with current zombie appear on the screen return true
+        for zombie in self.zombies:
+            if pos == (zombie.x, zombie.y):
+                return True
+        return False
+
+    def generate_next_enemy_pos(self):
+        new_pos = () # init an empty tuple
+        while True:
+            grid_index = random.randint(0, self.NUM_ROW * self.NUM_COL - 1) # random a number from 0 to 8
+            new_pos = self.zombies_position[grid_index]
+            if not self.check_exist(new_pos):
+                break
+        return new_pos, pygame.time.get_ticks()  #return position that able to generate new zombie and time
+    
+    def draw_enemies(self):
+        for zombie in self.zombies:
+            zombie_rect = image.zombie.get_rect()
+            zombie_center = zombie_rect.center
+            self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
+
+    def show_score(self, y):
+        global score_value
+        score = self.font_sub.render("Score: " + str(self.score_value), True, (255, 255, 255))
+        text_rect = score.get_rect(center=(SCREEN_WIDTH // 2, y))
+        self.display.blit(score, text_rect)
+
+    def check_enemy_collision(self, clickX, clickY, enemyX, enemyY):
+        zombie_rect = image.zombie.get_rect()
+        enemy_center = (enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
+        distance = math.sqrt(math.pow(enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
+        return distance < self.ZOMBIE_RADIUS
+    
+    def check_enemies_collision(self, click_pos):
+        for zombie in self.zombies:
+            if self.check_enemy_collision(click_pos[0], click_pos[1], zombie.x, zombie.y):
+                self.score_value
+                self.score_value += 1
+                self.zombies.remove(zombie)
+
+                sound_effects.playLevelUp()
+
+    def age_enemies(self):
+        for zombie in self.zombies:
+            zombie.life = max(0, zombie.life - (pygame.time.get_ticks() - zombie.time_of_birth))
+            if zombie.life == 0:
+                self.zombies.remove(zombie)
+
+    def remove_died_enemies(self):
+        for zombie in self.zombies:
+            if zombie.life == 0:
+                self.zombies.remove(zombie)
+
+    def run(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN: # mouse click
+                click_pos = pygame.mouse.get_pos()
+                self.check_enemies_collision(click_pos)
+
+            if event.type == self.GENERATE_ZOMBIE:
+                if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
+                    new_pos, time_of_birth = self.generate_next_enemy_pos()
+                    self.zombies.append(self.Zombie(x=new_pos[0], y=new_pos[1], life=self.ZOMBIE_LIFE_SPANS, time_of_birth=time_of_birth))
+
+        self.display.blit(image.gameplay_background, (0, 0))
+        image.setting_icon = pygame.transform.scale(image.setting_icon, (35, 37))
+        self.display.blit(image.setting_icon, (25, 25))
+
+        self.age_enemies()
+        self.draw_enemies()
+        self.show_score(775)
+
+        # cursor customize
+        pygame.mouse.set_visible(False) # make cursor invisible
+        self.cursor_img_rect.center = pygame.mouse.get_pos()
+        self.display.blit(self.cursor_img, self.cursor_img_rect)
+
+        
+class GameOver:
+    def __init__(self) -> None:
+        pass
+
+class gameStateManager:
+    def __init__(self, current_state):
+        self.current_state = current_state
+    def getState(self):
+        return self.current_state
+    def setState(self, state):
+        self.current_state = state
+    
+
+if __name__ == "__main__": # run the class Game
+    game = Game()
+    game.run()
