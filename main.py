@@ -240,6 +240,7 @@ class HowToPlay:
 
 ZOMBIE_WIDTH = 100
 ZOMBIE_HEIGHT = 100
+DELAY_BEFORE_REMOVAL = 2000
     
 class GamePlay:
 
@@ -302,13 +303,20 @@ class GamePlay:
         return distance < self.ZOMBIE_RADIUS
     
     def checkZombiesCollision(self, click_pos):
+        current_time = pygame.time.get_ticks()
         for zombie in self.zombies:
             if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y):
                 self.score_value
                 self.score_value += 1
                 zombie.state = ZombieState.IS_SLAMED
                 sound_effects.playLevelUp()
-
+                zombie.draw()
+                zombie.hit_time = current_time
+        for zombie in self.zombies:
+            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
+                self.zombies.remove(zombie)
+        # self.zombies = [zombie for zombie in self.zombies if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL]
+    
 
     def displayScore(self):
         score = self.font_sub.render("S c o r e :  " + str(self.score_value), True, WHITE)
