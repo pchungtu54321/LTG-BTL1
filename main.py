@@ -74,6 +74,7 @@ class Sprite:
         self.play_game_button = pygame.image.load("./Assets/PLAYGAME.png")
         self.sword = pygame.image.load("./Assets/SWORD.png")   
         self.setting_icon = pygame.image.load("./Assets/SETTING_ICON.png")
+        self.game_over = pygame.image.load("./Assets/GAME_OVER_SCREEN.png")
 image = Sprite()
 
 
@@ -91,13 +92,13 @@ class Game: # this is the main game class
         self.intro = Intro(self.screen, self.game_state_manager)
         self.menu = Menu(self.screen, self.game_state_manager)
         self.game_play = GamePlay(self.screen, self.game_state_manager)
-        self.game_over = GameOver(self.screen, self.game_state_manager)
+        self.game_over = GameOver(self.screen, self.game_state_manager, self.game_play)
 
         self.states = {'intro': self.intro, 'menu': self.menu, 'game_play': self.game_play, 'game_over': self.game_over}
 
     def run(self):
         
-        while True:
+        while True: # this while will loop every 1/60 sec
 
             self.states[self.game_state_manager.getState()].run() # evoke run() function in class
 
@@ -184,10 +185,26 @@ class Menu:
         self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
 
     def run(self):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746): # play game button
+                    self.game_state_manager.setState('game_play')
+
+                if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500): # exit button
+                    pygame.quit()
+                    sys.exit()
+
+                # if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644): # how to play button
+                    # self.game_state_manager.setState('')
+
+                # if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491): # highscore button
+                    # self.game_state_manager.setState('')
 
         self.display.blit(image.menu, (0, 0))
 
@@ -199,37 +216,27 @@ class Menu:
 
         self.display.blit(self.text_quit, (31, 467))
         self.display.blit(self.text_high_score, (580, 456))
-            
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        keys = pygame.mouse.get_pressed()
 
         if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):
             self.display.blit(image.play_game_button, (289, 564))
-            if keys[0]:
-                self.game_state_manager.setState('game_play')
 
         if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644):
             self.text_how = self.font_sub.render("H O W", True, DARK)
             self.text_to_play = self.font_sub.render("T O  P L A Y", True, DARK)
-            # if keys[0]:
-                # self.game_state_manager.setState('')
+            
         else:
             self.text_how = self.font_sub.render("H O W", True, WHITE)
             self.text_to_play = self.font_sub.render("T O  P L A Y", True, WHITE)
 
         if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):
             self.text_quit = self.font_sub.render("Q U I T", True, RED)
-            if keys[0]:
-                pygame.quit()
-                sys.exit()
                 
         else: 
             self.text_quit = self.font_sub.render("Q U I T", True, DARK)
 
         if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491):
             self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, ORANGE)
-            # if keys[0]:
-                # self.game_state_manager.setState('')
+            
         else:
             self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
 
@@ -248,7 +255,8 @@ class GamePlay:
         self.display = display # similar to screen variable
         self.game_state_manager = game_state_manager
 
-        self.TIMER = 30 # game play duration
+        self.TIMER = 15 # game play duration
+        self.timer_countdown = self.TIMER
 
         self.NUM_ROW = 3
         self.NUM_COL = 3
@@ -264,8 +272,8 @@ class GamePlay:
 
         self.zombies= [] #init a list to store current zombies on the screen
         
-        self.ZOMBIE_LIFE_SPANS = 100 * 1000
-        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) 
+        self.ZOMBIE_LIFE_SPANS = 1 * 1000
+        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) * 0.8 
         self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
         self.APPEAR_INTERVAL = 2 * 1000
 
@@ -273,6 +281,13 @@ class GamePlay:
 
         pygame.time.set_timer(self.GENERATE_ZOMBIE, self.APPEAR_INTERVAL)
         pygame.time.set_timer(pygame.USEREVENT, 1000)
+
+    def resetInitialState(self):
+        self.timer_countdown = self.TIMER
+        self.score_value = 0
+
+    def get_score_value(self):
+        return self.score_value
 
     def checkExist(self, pos): # if position equal with current zombie appear on the screen return true
         for zombie in self.zombies:
@@ -322,7 +337,7 @@ class GamePlay:
         self.display.blit(score, text_rect)
 
     def displayTime(self):
-        time = self.font_sub.render("T i m e :  " + str(self.TIMER), True, WHITE)
+        time = self.font_sub.render("T i m e :  " + str(self.timer_countdown), True, WHITE)
         text_rect = time.get_rect(center=(680, 775))
         self.display.blit(time, text_rect)
 
@@ -342,8 +357,8 @@ class GamePlay:
                     self.zombies.append(Zombie(x=new_pos[0], y=new_pos[1], screen=self.display))
 
             if event.type == pygame.USEREVENT: # Timer
-                self.TIMER -= 1
-                if self.TIMER == 0:
+                self.timer_countdown -= 1
+                if self.timer_countdown <= 0:
                     self.game_state_manager.setState('game_over')
 
         self.display.blit(image.gameplay_background, (0, 0))
@@ -360,17 +375,91 @@ class GamePlay:
         self.display.blit(self.cursor_img, self.cursor_img_rect)
         
 class GameOver:
-    def __init__(self, display, game_state_manager):
+    def __init__(self, display, game_state_manager, game_play):
         self.display = display # similar to screen variable
         self.game_state_manager = game_state_manager
+        self.game_play = game_play
+
+        self.font_main = pygame.font.SysFont('jollylodger', 70)
+        self.font_sub = pygame.font.SysFont('jollylodger', 54)
+
+        self.game_over_center = image.game_over.get_rect().center
+        self.position = 0
+        self.transition_speed = 10
+
+        self.new_record = self.font_main.render("N e w  r e c o r d", True, DARK)
+        self.game_over = self.font_main.render("G a m e  O v e r", True, DARK)
+        self.score = self.font_sub.render("S c o r e :  " + str(self.game_play.get_score_value()), True, DARK)
+        self.play_again = self.font_sub.render("P l a y  A g a i n", True, GREY)
+        self.menu = self.font_sub.render("M e n u", True, GREY)
+        
+    def resetInitialState(self):
+        self.position = 0
+
+    def writeHighscore(score_value):
+        with open('highscore.txt', 'w') as file:
+            file.write(str(score_value))
+
+    def readHighscore(self):
+        if os.path.exists('highscore.txt'):
+            with open('highscore.txt', 'r') as file:
+                return int(file.read())
+        else:
+            return 0
 
     def run (self):
+        pygame.mouse.set_visible(True) # make cursor invisible
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        
-        self.display.fill(WHITE)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if (mouse_x >= 240) and (mouse_x <= 560) and (mouse_y >= 550) and (mouse_y <= 610):
+                    self.game_play.resetInitialState()
+                    self.game_state_manager.setState('game_play')
+
+                if (mouse_x >= 345) and (mouse_x <= 465) and (mouse_y >= 620) and (mouse_y <= 670):
+                    self.game_play.resetInitialState()
+                    self.game_state_manager.setState('menu')
+
+        self.display.blit(image.gameplay_background, (0, 0))
+        self.display.blit(image.game_over, (SCREEN_WIDTH // 2 - self.game_over_center[0], (SCREEN_HEIGHT - self.game_over_center[1]) - self.position))
+
+        if (SCREEN_HEIGHT - self.game_over_center[1] - self.position) > ((SCREEN_HEIGHT // 2 - self.game_over_center[1]) + 50): # transition effect continue to increase position every time
+            self.position += self.transition_speed
+            
+        else:
+            # if self.game_play.get_score_value() > self.readHighscore():
+                # self.writeHighscore(self.game_play.get_score_value())
+
+            new_record_rect = self.new_record.get_rect(center=(SCREEN_WIDTH // 2, 280))
+            self.display.blit(self.new_record, new_record_rect)
+
+            # else:
+            #     game_over_rect = self.game_over.get_rect(center=(SCREEN_WIDTH // 2, 280))
+            #     self.display.blit(self.game_over, game_over_rect)
+
+
+            score_rect = self.score.get_rect(center=(SCREEN_WIDTH // 2, 430))
+            self.display.blit(self.score, score_rect)
+
+            play_again_rect = self.play_again.get_rect(center = (SCREEN_WIDTH // 2, 580))
+            self.display.blit(self.play_again, play_again_rect)
+
+            menu_rect = self.menu.get_rect(center = (SCREEN_WIDTH // 2, 645))
+            self.display.blit(self.menu, menu_rect)
+
+            if (mouse_x >= 240) and (mouse_x <= 560) and (mouse_y >= 550) and (mouse_y <= 610):
+                self.play_again = self.font_sub.render("P l a y  A g a i n", True, WHITE)
+            else:
+                self.play_again = self.font_sub.render("P l a y  A g a i n", True, GREY)
+
+            if (mouse_x >= 345) and (mouse_x <= 465) and (mouse_y >= 620) and (mouse_y <= 670):
+                self.menu = self.font_sub.render("M e n u", True, WHITE)
+            else:
+                self.menu = self.font_sub.render("M e n u", True, GREY)
 
 class gameStateManager:
     def __init__(self, current_state):
