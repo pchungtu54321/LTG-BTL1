@@ -48,7 +48,8 @@ class Zombie:
 
     def draw(self):
         surface = pygame.Surface((ZOMBIE_WIDTH,ZOMBIE_HEIGHT))
-        zombie = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath('Zombie.py')), "Assets/ZOMBIE.png" if self.state != ZombieState.IS_SLAMED else "Assets/zombie_stun.png"))
+        zombie = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath('Zombie.py')), "Assets/ZOMBIE.png" 
+                                                if self.state != ZombieState.IS_SLAMED else "Assets/zombie_stun.png"))
         
         zombie = pygame.transform.scale(zombie, (ZOMBIE_WIDTH,ZOMBIE_HEIGHT))   
         zombie_sur = zombie.convert_alpha()

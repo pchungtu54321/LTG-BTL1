@@ -305,8 +305,7 @@ class GamePlay:
     def checkZombiesCollision(self, click_pos):
         current_time = pygame.time.get_ticks()
         for zombie in self.zombies:
-            if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y):
-                self.score_value
+            if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y) and zombie.state == ZombieState.GO_UP:
                 self.score_value += 1
                 zombie.state = ZombieState.IS_SLAMED
                 sound_effects.playLevelUp()
@@ -315,7 +314,6 @@ class GamePlay:
         for zombie in self.zombies:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
-        # self.zombies = [zombie for zombie in self.zombies if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL]
     
 
     def displayScore(self):
