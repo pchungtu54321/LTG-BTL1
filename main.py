@@ -5,6 +5,8 @@ import random
 import os
 from dataclasses import dataclass
 
+from Zombie import Zombie, ZombieState
+
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -242,14 +244,12 @@ class HowToPlay:
     def __init__(self) -> None:
         pass
 
+
+ZOMBIE_WIDTH = 100
+ZOMBIE_HEIGHT = 100
+DELAY_BEFORE_REMOVAL = 2000
     
 class GamePlay:
-    class Zombie:
-        def __init__(self, x, y, life, time_of_birth):
-            self.x = x
-            self.y = y
-            self.life = life
-            self.time_of_birth = time_of_birth
 
     def __init__(self, display, game_state_manager):
         self.display = display # similar to screen variable
@@ -306,9 +306,10 @@ class GamePlay:
     
     def drawZombies(self):
         for zombie in self.zombies:
-            zombie_rect = image.zombie.get_rect()
-            zombie_center = zombie_rect.center
-            self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
+            # zombie_rect = image.zombie.get_rect()
+            # zombie_center = zombie_rect.center
+            # self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
+            zombie.draw()
 
     def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
@@ -317,19 +318,18 @@ class GamePlay:
         return distance < self.ZOMBIE_RADIUS
     
     def checkZombiesCollision(self, click_pos):
+        current_time = pygame.time.get_ticks()
         for zombie in self.zombies:
-            if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y):
-                self.score_value
+            if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y) and zombie.state == ZombieState.GO_UP:
                 self.score_value += 1
-                self.zombies.remove(zombie)
-
+                zombie.state = ZombieState.IS_SLAMED
                 sound_effects.playLevelUp()
-
-    def timerZombie(self):
+                zombie.draw()
+                zombie.hit_time = current_time
         for zombie in self.zombies:
-            # zombie.life = zombie.life - (pygame.time.get_ticks() - zombie.time_of_birth)
-            if (zombie.life - (pygame.time.get_ticks() - zombie.time_of_birth)) <= 0:
+            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
+    
 
     def displayScore(self):
         score = self.font_sub.render("S c o r e :  " + str(self.score_value), True, WHITE)
@@ -354,7 +354,7 @@ class GamePlay:
             if event.type == self.GENERATE_ZOMBIE:
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
-                    self.zombies.append(self.Zombie(x=new_pos[0], y=new_pos[1], life=self.ZOMBIE_LIFE_SPANS, time_of_birth=time_of_birth))
+                    self.zombies.append(Zombie(x=new_pos[0], y=new_pos[1], screen=self.display))
 
             if event.type == pygame.USEREVENT: # Timer
                 self.timer_countdown -= 1
@@ -365,7 +365,6 @@ class GamePlay:
         image.setting_icon = pygame.transform.scale(image.setting_icon, (35, 37))
         self.display.blit(image.setting_icon, (25, 25))
 
-        self.timerZombie()
         self.drawZombies()
         self.displayScore()
         self.displayTime()
@@ -374,7 +373,6 @@ class GamePlay:
         pygame.mouse.set_visible(False) # make cursor invisible
         self.cursor_img_rect.center = pygame.mouse.get_pos()
         self.display.blit(self.cursor_img, self.cursor_img_rect)
-
         
 class GameOver:
     def __init__(self, display, game_state_manager, game_play):
