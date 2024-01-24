@@ -15,7 +15,7 @@ MARGENTA = (135, 35, 65)
 DARKORANGE = (190, 49, 68)
 ORANGE = (240, 89, 65)
 RED = (184, 0, 0)
-GREY =  ( 77, 63, 90)
+GREY = (77, 63, 90)
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -24,6 +24,8 @@ TEXT = "Smash The Zombie"
 
 # import assets
 # sound
+
+
 class SoundEffect:
     def __init__(self):
         pygame.mixer.init()
@@ -63,22 +65,29 @@ class SoundEffect:
 
     def stopLevelUp(self):
         self.levelSound.stop()
+
+
 sound_effects = SoundEffect()
 
 # image
+
+
 class Sprite:
     def __init__(self):
         self.menu = pygame.image.load("./Assets/MENU_SCREEN.png")
-        self.gameplay_background = pygame.image.load("./Assets/GAME_SCREEN.png")
+        self.gameplay_background = pygame.image.load(
+            "./Assets/GAME_SCREEN.png")
         self.zombie = pygame.image.load("./Assets/ZOMBIE.png")
         self.play_game_button = pygame.image.load("./Assets/PLAYGAME.png")
-        self.sword = pygame.image.load("./Assets/SWORD.png")   
+        self.sword = pygame.image.load("./Assets/SWORD.png")
         self.setting_icon = pygame.image.load("./Assets/SETTING_ICON.png")
         self.game_over = pygame.image.load("./Assets/GAME_OVER_SCREEN.png")
+
+
 image = Sprite()
 
 
-class Game: # this is the main game class
+class Game:  # this is the main game class
     def __init__(self):
         # game initiallize
         self.clock = pygame.time.Clock()
@@ -92,23 +101,27 @@ class Game: # this is the main game class
         self.intro = Intro(self.screen, self.game_state_manager)
         self.menu = Menu(self.screen, self.game_state_manager)
         self.game_play = GamePlay(self.screen, self.game_state_manager)
-        self.game_over = GameOver(self.screen, self.game_state_manager, self.game_play)
+        self.game_over = GameOver(
+            self.screen, self.game_state_manager, self.game_play, self.game_play.score_value)
 
-        self.states = {'intro': self.intro, 'menu': self.menu, 'game_play': self.game_play, 'game_over': self.game_over}
+        self.states = {'intro': self.intro, 'menu': self.menu,
+                       'game_play': self.game_play, 'game_over': self.game_over}
 
     def run(self):
-        
-        while True: # this while will loop every 1/60 sec
 
-            self.states[self.game_state_manager.getState()].run() # evoke run() function in class
+        while True:  # this while will loop every 1/60 sec
 
+            # evoke run() function in class
+            self.states[self.game_state_manager.getState()].run()
+            self.game_over.score_value = self.states['game_play'].score_value
+            self.game_over.update_score()
             pygame.display.update()
             self.clock.tick(FPS)
 
 
 class Intro:
     def __init__(self, display, game_state_manager):
-        self.display = display # similar to screen variable
+        self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
         # time configuration
@@ -126,13 +139,12 @@ class Intro:
 
     def run(self):
         for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                    
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
         if any(pygame.key.get_pressed()) or any(pygame.mouse.get_pressed()):
-            self.game_state_manager.setState('menu') #switch screen
+            self.game_state_manager.setState('menu')  # switch screen
             sound_effects.mainTrack.play(-1)
 
         # take time since the game run
@@ -148,7 +160,8 @@ class Intro:
         # output
         self.display.fill(BLACK)
         rendered_text = self.font.render(TEXT[:self.char_index], True, WHITE)
-        text_rect = rendered_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        text_rect = rendered_text.get_rect(
+            center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         self.display.blit(rendered_text, text_rect)
 
         # fade to black ef
@@ -159,7 +172,7 @@ class Intro:
 
             if self.fade_alpha > 255:
                 self.game_state_manager.setState('menu')
-                sound_effects.mainTrack.play(-1) 
+                sound_effects.mainTrack.play(-1)
 
             # output
             self.display.blit(self.fade_surface, (0, 0))
@@ -169,7 +182,7 @@ class Intro:
 
 class Menu:
     def __init__(self, display, game_state_manager):
-        self.display = display # similar to screen variable
+        self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
         self.font_main = pygame.font.SysFont('trashhand', 70)
@@ -182,7 +195,8 @@ class Menu:
         self.text_to_play = self.font_sub.render("T O  P L A Y", True, WHITE)
 
         self.text_quit = self.font_sub.render("Q U I T", True, DARK)
-        self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
+        self.text_high_score = self.font_sub.render(
+            "H I G H  S C O R E", True, DARK)
 
     def run(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -193,22 +207,16 @@ class Menu:
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746): # play game button
+                if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):  # play game button
                     self.game_state_manager.setState('game_play')
 
-                if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500): # exit button
+                if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):  # exit button
                     pygame.quit()
                     sys.exit()
 
-                # if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644): # how to play button
-                    # self.game_state_manager.setState('')
-
-                # if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491): # highscore button
-                    # self.game_state_manager.setState('')
-
         self.display.blit(image.menu, (0, 0))
 
-        self.display.blit(self.text_play, (438,597))
+        self.display.blit(self.text_play, (438, 597))
         self.display.blit(self.text_game, (425, 660))
 
         self.display.blit(self.text_how, (155, 558))
@@ -222,23 +230,28 @@ class Menu:
 
         if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644):
             self.text_how = self.font_sub.render("H O W", True, DARK)
-            self.text_to_play = self.font_sub.render("T O  P L A Y", True, DARK)
-            
+            self.text_to_play = self.font_sub.render(
+                "T O  P L A Y", True, DARK)
+
         else:
             self.text_how = self.font_sub.render("H O W", True, WHITE)
-            self.text_to_play = self.font_sub.render("T O  P L A Y", True, WHITE)
+            self.text_to_play = self.font_sub.render(
+                "T O  P L A Y", True, WHITE)
 
         if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):
             self.text_quit = self.font_sub.render("Q U I T", True, RED)
-                
-        else: 
+
+        else:
             self.text_quit = self.font_sub.render("Q U I T", True, DARK)
 
         if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491):
-            self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, ORANGE)
-            
+            self.text_high_score = self.font_sub.render(
+                "H I G H  S C O R E", True, ORANGE)
+
         else:
-            self.text_high_score = self.font_sub.render("H I G H  S C O R E", True, DARK)
+            self.text_high_score = self.font_sub.render(
+                "H I G H  S C O R E", True, DARK)
+
 
 class HowToPlay:
     def __init__(self) -> None:
@@ -248,14 +261,15 @@ class HowToPlay:
 ZOMBIE_WIDTH = 100
 ZOMBIE_HEIGHT = 100
 DELAY_BEFORE_REMOVAL = 2000
-    
+
+
 class GamePlay:
 
     def __init__(self, display, game_state_manager):
-        self.display = display # similar to screen variable
+        self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
-        self.TIMER = 15 # game play duration
+        self.TIMER = 15  # game play duration
         self.timer_countdown = self.TIMER
 
         self.NUM_ROW = 3
@@ -270,14 +284,16 @@ class GamePlay:
         self.score_value = 0
         self.smash_times = 0
 
-        self.zombies= [] #init a list to store current zombies on the screen
-        
+        self.zombies = []  # init a list to store current zombies on the screen
+
         self.ZOMBIE_LIFE_SPANS = 1 * 1000
-        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) * 0.8 
+        self.ZOMBIE_RADIUS = max(
+            image.zombie.get_width(), image.zombie.get_height()) * 0.8
         self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
         self.APPEAR_INTERVAL = 2 * 1000
 
-        self.zombies_position = [(142, 125), (405, 125), (659, 125), (142, 372), (405, 372), (659, 372), (142, 620), (405, 620), (659, 620)] # init a list to store position of zombie
+        self.zombies_position = [(142, 125), (405, 125), (659, 125), (142, 372), (405, 372), (
+            659, 372), (142, 620), (405, 620), (659, 620)]  # init a list to store position of zombie
 
         pygame.time.set_timer(self.GENERATE_ZOMBIE, self.APPEAR_INTERVAL)
         pygame.time.set_timer(pygame.USEREVENT, 1000)
@@ -286,37 +302,36 @@ class GamePlay:
         self.timer_countdown = self.TIMER
         self.score_value = 0
 
-    def get_score_value(self):
-        return self.score_value
-
-    def checkExist(self, pos): # if position equal with current zombie appear on the screen return true
+    # if position equal with current zombie appear on the screen return true
+    def checkExist(self, pos):
         for zombie in self.zombies:
             if pos == (zombie.x, zombie.y):
                 return True
         return False
 
     def generateNextEnemyPos(self):
-        new_pos = () # init an empty tuple
+        new_pos = ()  # init an empty tuple
         while True:
-            grid_index = random.randint(0, self.NUM_ROW * self.NUM_COL - 1) # random a number from 0 to 8
+            # random a number from 0 to 8
+            grid_index = random.randint(0, self.NUM_ROW * self.NUM_COL - 1)
             new_pos = self.zombies_position[grid_index]
             if not self.checkExist(new_pos):
                 break
-        return new_pos, pygame.time.get_ticks()  #return position that able to generate new zombie and time
-    
+        # return position that able to generate new zombie and time
+        return new_pos, pygame.time.get_ticks()
+
     def drawZombies(self):
         for zombie in self.zombies:
-            # zombie_rect = image.zombie.get_rect()
-            # zombie_center = zombie_rect.center
-            # self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
             zombie.draw()
 
     def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
-        enemy_center = (enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
-        distance = math.sqrt(math.pow(enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
+        enemy_center = (
+            enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
+        distance = math.sqrt(math.pow(
+            enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
         return distance < self.ZOMBIE_RADIUS
-    
+
     def checkZombiesCollision(self, click_pos):
         current_time = pygame.time.get_ticks()
         for zombie in self.zombies:
@@ -329,15 +344,16 @@ class GamePlay:
         for zombie in self.zombies:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
-    
 
     def displayScore(self):
-        score = self.font_sub.render("S c o r e :  " + str(self.score_value), True, WHITE)
+        score = self.font_sub.render(
+            "S c o r e :  " + str(self.score_value), True, WHITE)
         text_rect = score.get_rect(center=(SCREEN_WIDTH // 2, 775))
         self.display.blit(score, text_rect)
 
     def displayTime(self):
-        time = self.font_sub.render("T i m e :  " + str(self.timer_countdown), True, WHITE)
+        time = self.font_sub.render(
+            "T i m e :  " + str(self.timer_countdown), True, WHITE)
         text_rect = time.get_rect(center=(680, 775))
         self.display.blit(time, text_rect)
 
@@ -347,22 +363,24 @@ class GamePlay:
                 pygame.quit()
                 sys.exit()
 
-            if event.type == pygame.MOUSEBUTTONDOWN: # mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 click_pos = pygame.mouse.get_pos()
                 self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
-                    self.zombies.append(Zombie(x=new_pos[0], y=new_pos[1], screen=self.display))
+                    self.zombies.append(
+                        Zombie(x=new_pos[0], y=new_pos[1], screen=self.display))
 
-            if event.type == pygame.USEREVENT: # Timer
+            if event.type == pygame.USEREVENT:
                 self.timer_countdown -= 1
                 if self.timer_countdown <= 0:
                     self.game_state_manager.setState('game_over')
 
         self.display.blit(image.gameplay_background, (0, 0))
-        image.setting_icon = pygame.transform.scale(image.setting_icon, (35, 37))
+        image.setting_icon = pygame.transform.scale(
+            image.setting_icon, (35, 37))
         self.display.blit(image.setting_icon, (25, 25))
 
         self.drawZombies()
@@ -370,15 +388,17 @@ class GamePlay:
         self.displayTime()
 
         # cursor customize
-        pygame.mouse.set_visible(False) # make cursor invisible
+        pygame.mouse.set_visible(False)  # make cursor invisible
         self.cursor_img_rect.center = pygame.mouse.get_pos()
         self.display.blit(self.cursor_img, self.cursor_img_rect)
-        
+
+
 class GameOver:
-    def __init__(self, display, game_state_manager, game_play):
-        self.display = display # similar to screen variable
+    def __init__(self, display, game_state_manager, game_play, score_value):
+        self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
         self.game_play = game_play
+        self.score_value = score_value
 
         self.font_main = pygame.font.SysFont('jollylodger', 70)
         self.font_sub = pygame.font.SysFont('jollylodger', 54)
@@ -387,14 +407,21 @@ class GameOver:
         self.position = 0
         self.transition_speed = 10
 
-        self.new_record = self.font_main.render("N e w  r e c o r d", True, DARK)
+        self.new_record = self.font_main.render(
+            "N e w  r e c o r d", True, DARK)
         self.game_over = self.font_main.render("G a m e  O v e r", True, DARK)
-        self.score = self.font_sub.render("S c o r e :  " + str(self.game_play.get_score_value()), True, DARK)
-        self.play_again = self.font_sub.render("P l a y  A g a i n", True, GREY)
+        self.score = self.font_sub.render(
+            "S c o r e :  " + str(self.score_value), True, DARK)
+        self.play_again = self.font_sub.render(
+            "P l a y  A g a i n", True, GREY)
         self.menu = self.font_sub.render("M e n u", True, GREY)
-        
+
     def resetInitialState(self):
         self.position = 0
+
+    def update_score(self):
+        self.score = self.font_sub.render(
+            "S c o r e :  " + str(self.score_value), True, DARK)
 
     def writeHighscore(score_value):
         with open('highscore.txt', 'w') as file:
@@ -407,8 +434,8 @@ class GameOver:
         else:
             return 0
 
-    def run (self):
-        pygame.mouse.set_visible(True) # make cursor invisible
+    def run(self):
+        pygame.mouse.set_visible(True)  # make cursor invisible
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
@@ -425,51 +452,52 @@ class GameOver:
                     self.game_state_manager.setState('menu')
 
         self.display.blit(image.gameplay_background, (0, 0))
-        self.display.blit(image.game_over, (SCREEN_WIDTH // 2 - self.game_over_center[0], (SCREEN_HEIGHT - self.game_over_center[1]) - self.position))
+        self.display.blit(image.game_over, (SCREEN_WIDTH // 2 -
+                          self.game_over_center[0], (SCREEN_HEIGHT - self.game_over_center[1]) - self.position))
 
-        if (SCREEN_HEIGHT - self.game_over_center[1] - self.position) > ((SCREEN_HEIGHT // 2 - self.game_over_center[1]) + 50): # transition effect continue to increase position every time
+        # transition effect continue to increase position every time
+        if (SCREEN_HEIGHT - self.game_over_center[1] - self.position) > ((SCREEN_HEIGHT // 2 - self.game_over_center[1]) + 50):
             self.position += self.transition_speed
-            
+
         else:
-            # if self.game_play.get_score_value() > self.readHighscore():
-                # self.writeHighscore(self.game_play.get_score_value())
-
-            new_record_rect = self.new_record.get_rect(center=(SCREEN_WIDTH // 2, 280))
+            new_record_rect = self.new_record.get_rect(
+                center=(SCREEN_WIDTH // 2, 280))
             self.display.blit(self.new_record, new_record_rect)
-
-            # else:
-            #     game_over_rect = self.game_over.get_rect(center=(SCREEN_WIDTH // 2, 280))
-            #     self.display.blit(self.game_over, game_over_rect)
-
 
             score_rect = self.score.get_rect(center=(SCREEN_WIDTH // 2, 430))
             self.display.blit(self.score, score_rect)
 
-            play_again_rect = self.play_again.get_rect(center = (SCREEN_WIDTH // 2, 580))
+            play_again_rect = self.play_again.get_rect(
+                center=(SCREEN_WIDTH // 2, 580))
             self.display.blit(self.play_again, play_again_rect)
 
-            menu_rect = self.menu.get_rect(center = (SCREEN_WIDTH // 2, 645))
+            menu_rect = self.menu.get_rect(center=(SCREEN_WIDTH // 2, 645))
             self.display.blit(self.menu, menu_rect)
 
             if (mouse_x >= 240) and (mouse_x <= 560) and (mouse_y >= 550) and (mouse_y <= 610):
-                self.play_again = self.font_sub.render("P l a y  A g a i n", True, WHITE)
+                self.play_again = self.font_sub.render(
+                    "P l a y  A g a i n", True, WHITE)
             else:
-                self.play_again = self.font_sub.render("P l a y  A g a i n", True, GREY)
+                self.play_again = self.font_sub.render(
+                    "P l a y  A g a i n", True, GREY)
 
             if (mouse_x >= 345) and (mouse_x <= 465) and (mouse_y >= 620) and (mouse_y <= 670):
                 self.menu = self.font_sub.render("M e n u", True, WHITE)
             else:
                 self.menu = self.font_sub.render("M e n u", True, GREY)
 
+
 class gameStateManager:
     def __init__(self, current_state):
         self.current_state = current_state
+
     def getState(self):
         return self.current_state
+
     def setState(self, state):
         self.current_state = state
-    
 
-if __name__ == "__main__": # run the class Game
+
+if __name__ == "__main__":  # run the class Game
     game = Game()
     game.run()
