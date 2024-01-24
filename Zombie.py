@@ -45,7 +45,7 @@ class Zombie:
     def change_state(self, new_state):
         self.state = new_state
 
-    def drawZombies(self):
+    def draw(self):
         surface = pygame.Surface((100, 100))
         zombie = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath('Zombie.py')), "Assets/ZOMBIE.png" if self.state != ZombieState.IS_SLAMED else "Assets/zombie_stun.png"))
         zombie = pygame.transform.scale(zombie, (ZOMBIE_WIDTH,ZOMBIE_HEIGHT))   

@@ -293,7 +293,7 @@ class GamePlay:
             # zombie_rect = image.zombie.get_rect()
             # zombie_center = zombie_rect.center
             # self.display.blit(image.zombie, (zombie.x - zombie_center[0], zombie.y - zombie_center[1]))
-            zombie.drawZombies()
+            zombie.draw()
 
     def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
