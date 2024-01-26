@@ -348,6 +348,10 @@ class GamePlay:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
 
+    def removePreviosZombie(self):
+        for zombie in self.zombies:
+                self.zombies.remove(zombie)
+
     def displaynbOfMissedClicks(self):
         missed_clicks = self.font_sub.render(
             "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, WHITE)
@@ -378,6 +382,7 @@ class GamePlay:
                 self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
+                self.removePreviosZombie()
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(
