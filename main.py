@@ -344,9 +344,7 @@ class GamePlay:
                 sound_effects.playLevelUp()
                 zombie.draw()
                 zombie.hit_time = current_time
-            print(current_time - zombie.hit_time)
-            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.IS_SLAMED:
-                self.zombies.remove(zombie)
+            
                 
 
     def removePreviousZombie(self):
@@ -356,8 +354,10 @@ class GamePlay:
                 zombie.change_state(ZombieState.GO_DOWN)
                 zombie.draw()
                 zombie.go_down_time = current_time
-            # if current_time - zombie.go_down_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.NONE:
-            #     self.zombies.remove(zombie)
+            if current_time - zombie.go_down_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.NONE:
+                self.zombies.remove(zombie)
+            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.IS_SLAMED:
+                self.zombies.remove(zombie)
 
     def displaynbOfMissedClicks(self):
         missed_clicks = self.font_sub.render(
