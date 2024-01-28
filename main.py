@@ -266,7 +266,7 @@ class GamePlay:
 
         self.ZOMBIE_LIFE_SPANS = 1 * 1000
         self.ZOMBIE_RADIUS = max(
-            image.zombie.get_width(), image.zombie.get_height()) * 0.8
+            image.zombie.get_width(), image.zombie.get_height()) * 0.4
         self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
         self.APPEAR_INTERVAL = 2 * 1000
 
@@ -305,7 +305,7 @@ class GamePlay:
     def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
         enemy_center = (
-            enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
+            enemyX + zombie_rect.center[0] - 20, enemyY + zombie_rect.center[1] - 50)
         distance = math.sqrt(math.pow(
             enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
         return distance < self.ZOMBIE_RADIUS
