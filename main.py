@@ -265,8 +265,7 @@ class GamePlay:
         self.zombies = []  # init a list to store current zombies on the screen
 
         self.ZOMBIE_LIFE_SPANS = 1 * 1000
-        self.ZOMBIE_RADIUS = max(
-            image.zombie.get_width(), image.zombie.get_height()) * 0.4
+        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) * 0.4
         self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
         self.APPEAR_INTERVAL = 2 * 1000
 
