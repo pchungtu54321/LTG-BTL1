@@ -271,7 +271,7 @@ class GamePlay:
         self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
-        self.TIMER = 15  # game play duration
+        self.TIMER = 30  # game play duration
         self.timer_countdown = self.TIMER
 
         self.NUM_ROW = 3
@@ -344,13 +344,21 @@ class GamePlay:
                 sound_effects.playLevelUp()
                 zombie.draw()
                 zombie.hit_time = current_time
-        for zombie in self.zombies:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
+                print("remove")
 
-    def removePreviosZombie(self):
+    def removePreviousZombie(self):
         for zombie in self.zombies:
-                self.zombies.remove(zombie)
+            current_time = pygame.time.get_ticks()
+            print(zombie.need_go_down())
+            if zombie.need_go_down():
+                zombie.state = ZombieState.GO_DOWN
+                print("doanthaocute")
+                zombie.draw()
+                zombie.go_down_time = current_time
+            # if current_time - zombie.go_down_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.NONE:
+            #     self.zombies.remove(zombie)
 
     def displaynbOfMissedClicks(self):
         missed_clicks = self.font_sub.render(
@@ -382,7 +390,7 @@ class GamePlay:
                 self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
-                self.removePreviosZombie()
+                # self.removePreviousZombie()
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(
