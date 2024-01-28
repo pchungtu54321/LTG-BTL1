@@ -340,21 +340,20 @@ class GamePlay:
         for zombie in self.zombies:
             if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y) and zombie.state == ZombieState.GO_UP:
                 self.score_value += 1
-                zombie.state = ZombieState.IS_SLAMED
+                zombie.change_state(ZombieState.IS_SLAMED)
                 sound_effects.playLevelUp()
                 zombie.draw()
                 zombie.hit_time = current_time
-            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
+            print(current_time - zombie.hit_time)
+            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.IS_SLAMED:
                 self.zombies.remove(zombie)
-                print("remove")
+                
 
     def removePreviousZombie(self):
         for zombie in self.zombies:
             current_time = pygame.time.get_ticks()
-            print(zombie.need_go_down())
             if zombie.need_go_down():
-                zombie.state = ZombieState.GO_DOWN
-                print("doanthaocute")
+                zombie.change_state(ZombieState.GO_DOWN)
                 zombie.draw()
                 zombie.go_down_time = current_time
             # if current_time - zombie.go_down_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.NONE:
@@ -390,7 +389,7 @@ class GamePlay:
                 self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
-                # self.removePreviousZombie()
+                self.removePreviousZombie()
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(
@@ -399,6 +398,7 @@ class GamePlay:
             if event.type == pygame.USEREVENT:
                 self.timer_countdown -= 1
                 if self.timer_countdown <= 0:
+                    self.zombies.clear()
                     self.game_state_manager.setState('game_over')
 
         self.display.blit(image.gameplay_background, (0, 0))

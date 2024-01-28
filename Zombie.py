@@ -30,6 +30,10 @@ class Zombie:
         self.hit_time = 0
         self.go_down_time = 0
 
+    def change_state(self, new_state):
+        self.state = new_state
+
+
     def draw(self):
         surface = pygame.Surface((ZOMBIE_WIDTH, ZOMBIE_HEIGHT))
         zombie = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath('Zombie.py')), "Assets/ZOMBIE.png"
@@ -73,7 +77,6 @@ class Zombie:
         self.alpha -= 51
 
     def need_go_down(self):
-        print(self.time_last)
         if self.time_last == 0:
             self.time_last = MAX_TIME_LAST
             return True
@@ -84,4 +87,3 @@ class Zombie:
             self.state = ZombieState.NONE
             return
         self.y_rise += 5
-        print("xuong")
