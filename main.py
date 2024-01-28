@@ -22,18 +22,12 @@ SCREEN_HEIGHT = 800
 FPS = 60
 TEXT = "Smash The Zombie"
 
-# import assets
-# sound
-
 
 class SoundEffect:
     def __init__(self):
         pygame.mixer.init()
         self.typingSound = pygame.mixer.Sound("sounds/typing.wav")
         self.mainTrack = pygame.mixer.Sound("sounds/themesong.wav")
-        self.fireSound = pygame.mixer.Sound("sounds/fire.wav")
-        self.popSound = pygame.mixer.Sound("sounds/pop.wav")
-        self.hurtSound = pygame.mixer.Sound("sounds/hurt.wav")
         self.levelSound = pygame.mixer.Sound("sounds/point.wav")
 
     def playTyping(self):
@@ -41,24 +35,6 @@ class SoundEffect:
 
     def stopTyping(self):
         self.typingSound.stop()
-
-    def playFire(self):
-        self.fireSound.play()
-
-    def stopFire(self):
-        self.fireSound.stop()
-
-    def playPop(self):
-        self.popSound.play()
-
-    def stopPop(self):
-        self.popSound.stop()
-
-    def playHurt(self):
-        self.hurtSound.play()
-
-    def stopHurt(self):
-        self.hurtSound.stop()
 
     def playLevelUp(self):
         self.levelSound.play()
