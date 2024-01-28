@@ -102,7 +102,7 @@ class Game:  # this is the main game class
         self.menu = Menu(self.screen, self.game_state_manager)
         self.game_play = GamePlay(self.screen, self.game_state_manager)
         self.game_over = GameOver(
-            self.screen, self.game_state_manager, self.game_play, self.game_play.score_value)
+            self.screen, self.game_state_manager, self.game_play, self.game_play.score_value, self.game_play.nb_of_click)
 
         self.states = {'intro': self.intro, 'menu': self.menu,
                        'game_play': self.game_play, 'game_over': self.game_over}
@@ -114,7 +114,9 @@ class Game:  # this is the main game class
             # evoke run() function in class
             self.states[self.game_state_manager.getState()].run()
             self.game_over.score_value = self.states['game_play'].score_value
+            self.game_over.nb_of_click = self.states['game_play'].nb_of_click
             self.game_over.update_score()
+            self.game_over.update_missed_clicks()
             pygame.display.update()
             self.clock.tick(FPS)
 
@@ -282,7 +284,7 @@ class GamePlay:
         self.font_sub = pygame.font.SysFont('trashhand', 40)
 
         self.score_value = 0
-        self.smash_times = 0
+        self.nb_of_click = 0
 
         self.zombies = []  # init a list to store current zombies on the screen
 
@@ -300,6 +302,7 @@ class GamePlay:
 
     def resetInitialState(self):
         self.timer_countdown = self.TIMER
+        self.nb_of_click = 0
         self.score_value = 0
 
     # if position equal with current zombie appear on the screen return true
@@ -345,6 +348,16 @@ class GamePlay:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
                 self.zombies.remove(zombie)
 
+    def removePreviosZombie(self):
+        for zombie in self.zombies:
+                self.zombies.remove(zombie)
+
+    def displaynbOfMissedClicks(self):
+        missed_clicks = self.font_sub.render(
+            "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, WHITE)
+        text_rect = missed_clicks.get_rect(center=(120, 775))
+        self.display.blit(missed_clicks, text_rect)
+
     def displayScore(self):
         score = self.font_sub.render(
             "S c o r e :  " + str(self.score_value), True, WHITE)
@@ -364,10 +377,12 @@ class GamePlay:
                 sys.exit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                self.nb_of_click += 1
                 click_pos = pygame.mouse.get_pos()
                 self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
+                self.removePreviosZombie()
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(
@@ -384,6 +399,7 @@ class GamePlay:
         self.display.blit(image.setting_icon, (25, 25))
 
         self.drawZombies()
+        self.displaynbOfMissedClicks()
         self.displayScore()
         self.displayTime()
 
@@ -394,11 +410,12 @@ class GamePlay:
 
 
 class GameOver:
-    def __init__(self, display, game_state_manager, game_play, score_value):
+    def __init__(self, display, game_state_manager, game_play, score_value, nb_of_click):
         self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
         self.game_play = game_play
         self.score_value = score_value
+        self.nb_of_click = nb_of_click
 
         self.font_main = pygame.font.SysFont('jollylodger', 70)
         self.font_sub = pygame.font.SysFont('jollylodger', 54)
@@ -410,8 +427,6 @@ class GameOver:
         self.new_record = self.font_main.render(
             "N e w  r e c o r d", True, DARK)
         self.game_over = self.font_main.render("G a m e  O v e r", True, DARK)
-        self.score = self.font_sub.render(
-            "S c o r e :  " + str(self.score_value), True, DARK)
         self.play_again = self.font_sub.render(
             "P l a y  A g a i n", True, GREY)
         self.menu = self.font_sub.render("M e n u", True, GREY)
@@ -423,16 +438,9 @@ class GameOver:
         self.score = self.font_sub.render(
             "S c o r e :  " + str(self.score_value), True, DARK)
 
-    def writeHighscore(score_value):
-        with open('highscore.txt', 'w') as file:
-            file.write(str(score_value))
-
-    def readHighscore(self):
-        if os.path.exists('highscore.txt'):
-            with open('highscore.txt', 'r') as file:
-                return int(file.read())
-        else:
-            return 0
+    def update_missed_clicks(self):
+        self.missed_clicks = self.font_sub.render(
+            "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, DARK)
 
     def run(self):
         pygame.mouse.set_visible(True)  # make cursor invisible
@@ -464,8 +472,11 @@ class GameOver:
                 center=(SCREEN_WIDTH // 2, 280))
             self.display.blit(self.new_record, new_record_rect)
 
-            score_rect = self.score.get_rect(center=(SCREEN_WIDTH // 2, 430))
+            score_rect = self.score.get_rect(center=(SCREEN_WIDTH // 2, 390))
             self.display.blit(self.score, score_rect)
+
+            missed_clicks_rect = self.missed_clicks.get_rect(center=(SCREEN_WIDTH // 2, 450))
+            self.display.blit(self.missed_clicks, missed_clicks_rect)
 
             play_again_rect = self.play_again.get_rect(
                 center=(SCREEN_WIDTH // 2, 580))
