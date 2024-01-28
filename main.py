@@ -305,7 +305,6 @@ class GamePlay:
         self.nb_of_click = 0
         self.score_value = 0
 
-    # if position equal with current zombie appear on the screen return true
     def checkExist(self, pos):
         for zombie in self.zombies:
             if pos == (zombie.x, zombie.y):
@@ -345,8 +344,6 @@ class GamePlay:
                 zombie.draw()
                 zombie.hit_time = current_time
             
-                
-
     def removePreviousZombie(self):
         for zombie in self.zombies:
             current_time = pygame.time.get_ticks()
@@ -359,7 +356,7 @@ class GamePlay:
             if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.IS_SLAMED:
                 self.zombies.remove(zombie)
 
-    def displaynbOfMissedClicks(self):
+    def displayMissedClicks(self):
         missed_clicks = self.font_sub.render(
             "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, WHITE)
         text_rect = missed_clicks.get_rect(center=(120, 775))
@@ -407,7 +404,7 @@ class GamePlay:
         self.display.blit(image.setting_icon, (25, 25))
 
         self.drawZombies()
-        self.displaynbOfMissedClicks()
+        self.displayMissedClicks()
         self.displayScore()
         self.displayTime()
 
@@ -415,7 +412,6 @@ class GamePlay:
         pygame.mouse.set_visible(False)  # make cursor invisible
         self.cursor_img_rect.center = pygame.mouse.get_pos()
         self.display.blit(self.cursor_img, self.cursor_img_rect)
-
 
 class GameOver:
     def __init__(self, display, game_state_manager, game_play, score_value, nb_of_click):
