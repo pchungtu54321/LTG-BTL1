@@ -201,7 +201,7 @@ class Menu:
         self.display.blit(self.text_to_play, (116, 608))
 
         self.display.blit(self.text_quit, (31, 467))
-        self.display.blit(self.text_high_score, (580, 456))
+        self.display.blit(self.text_high_score, (560, 460))
 
         if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):
             self.display.blit(image.play_game_button, (289, 564))
