@@ -11,8 +11,6 @@ from Zombie import Zombie, ZombieState
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 DARK = (34, 9, 44)
-MARGENTA = (135, 35, 65)
-DARKORANGE = (190, 49, 68)
 ORANGE = (240, 89, 65)
 RED = (184, 0, 0)
 GREY = (77, 63, 90)
@@ -38,9 +36,6 @@ class SoundEffect:
 
     def playLevelUp(self):
         self.levelSound.play()
-
-    def stopLevelUp(self):
-        self.levelSound.stop()
 
 
 sound_effects = SoundEffect()
@@ -79,8 +74,7 @@ class Game:  # this is the main game class
         self.intro = Intro(self.screen, self.game_state_manager)
         self.menu = Menu(self.screen, self.game_state_manager)
         self.game_play = GamePlay(self.screen, self.game_state_manager)
-        self.game_over = GameOver(
-            self.screen, self.game_state_manager, self.game_play, self.game_play.score_value, self.game_play.nb_of_click)
+        self.game_over = GameOver(self.screen, self.game_state_manager, self.game_play)
         self.pause = Pause(self.screen, self.game_state_manager, self.game_play)
 
         self.states = {'intro': self.intro, 'menu': self.menu,
@@ -92,10 +86,7 @@ class Game:  # this is the main game class
 
             # evoke run() function in class
             self.states[self.game_state_manager.getState()].run()
-            self.game_over.score_value = self.states['game_play'].score_value
-            self.game_over.nb_of_click = self.states['game_play'].nb_of_click
-            self.game_over.update_score()
-            self.game_over.update_missed_clicks()
+
             pygame.display.update()
             self.clock.tick(FPS)
 
@@ -180,7 +171,7 @@ class Menu:
             "H I G H  S C O R E", True, DARK)
 
     def run(self):
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -189,10 +180,10 @@ class Menu:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: 
-                    if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):  # play game button
+                    if (mouse_pos[0] >= 297) and (mouse_pos[0] <= 730) and (mouse_pos[1] >= 577) and (mouse_pos[1] <= 746):  # play game button
                         self.game_state_manager.setState('game_play')
 
-                    if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):  # exit button
+                    if (mouse_pos[0] >= 31) and (mouse_pos[0] <= 118) and (mouse_pos[1] >= 464) and (mouse_pos[1] <= 500):  # exit button
                         pygame.quit()
                         sys.exit()
 
@@ -207,10 +198,10 @@ class Menu:
         self.display.blit(self.text_quit, (31, 467))
         self.display.blit(self.text_high_score, (580, 456))
 
-        if (mouse_x >= 297) and (mouse_x <= 730) and (mouse_y >= 577) and (mouse_y <= 746):
+        if (mouse_pos[0] >= 297) and (mouse_pos[0] <= 730) and (mouse_pos[1] >= 577) and (mouse_pos[1] <= 746):
             self.display.blit(image.play_game_button, (289, 564))
 
-        if (mouse_x >= 129) and (mouse_x <= 268) and (mouse_y >= 562) and (mouse_y <= 644):
+        if (mouse_pos[0] >= 129) and (mouse_pos[0] <= 268) and (mouse_pos[1] >= 562) and (mouse_pos[1] <= 644):
             self.text_how = self.font_sub.render("H O W", True, DARK)
             self.text_to_play = self.font_sub.render(
                 "T O  P L A Y", True, DARK)
@@ -220,13 +211,13 @@ class Menu:
             self.text_to_play = self.font_sub.render(
                 "T O  P L A Y", True, WHITE)
 
-        if (mouse_x >= 31) and (mouse_x <= 118) and (mouse_y >= 464) and (mouse_y <= 500):
+        if (mouse_pos[0] >= 31) and (mouse_pos[0] <= 118) and (mouse_pos[1] >= 464) and (mouse_pos[1] <= 500):
             self.text_quit = self.font_sub.render("Q U I T", True, RED)
 
         else:
             self.text_quit = self.font_sub.render("Q U I T", True, DARK)
 
-        if (mouse_x >= 580) and (mouse_x <= 772) and (mouse_y >= 457) and (mouse_y <= 491):
+        if (mouse_pos[0] >= 580) and (mouse_pos[0] <= 772) and (mouse_pos[1] >= 457) and (mouse_pos[1] <= 491):
             self.text_high_score = self.font_sub.render(
                 "H I G H  S C O R E", True, ORANGE)
 
@@ -251,7 +242,7 @@ class GamePlay:
         self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
-        self.TIMER = 30  # game play duration
+        self.TIMER = 20  # game play duration
         self.timer_countdown = self.TIMER
 
         self.NUM_ROW = 3
@@ -287,6 +278,12 @@ class GamePlay:
         self.timer_countdown = self.TIMER
         self.nb_of_click = 0
         self.score_value = 0
+
+    def getScore(self):
+        return self.score_value
+    
+    def getMissedClick(self):
+        return self.nb_of_click - self.score_value
 
     def checkExist(self, pos):
         for zombie in self.zombies:
@@ -365,12 +362,11 @@ class GamePlay:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    mouse_pos = pygame.mouse.get_pos()
-                    if self.setting_icon_rect.collidepoint(mouse_pos):
+                    click_pos = pygame.mouse.get_pos()
+                    if self.setting_icon_rect.collidepoint(click_pos):
                         self.game_state_manager.setState('pause')
                     else:
                         self.nb_of_click += 1
-                        click_pos = pygame.mouse.get_pos()
                         self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
@@ -490,12 +486,10 @@ class Pause:
                 self.menu = self.font_sub.render("M e n u", True, GREY)
 
 class GameOver:
-    def __init__(self, display, game_state_manager, game_play, score_value, nb_of_click):
+    def __init__(self, display, game_state_manager, game_play):
         self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
         self.game_play = game_play
-        self.score_value = score_value
-        self.nb_of_click = nb_of_click
 
         self.font_main = pygame.font.SysFont('jollylodger', 70)
         self.font_sub = pygame.font.SysFont('jollylodger', 54)
@@ -514,17 +508,9 @@ class GameOver:
     def resetInitialState(self):
         self.position = 0
 
-    def update_score(self):
-        self.score = self.font_sub.render(
-            "S c o r e :  " + str(self.score_value), True, DARK)
-
-    def update_missed_clicks(self):
-        self.missed_clicks = self.font_sub.render(
-            "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, DARK)
-
     def run(self):
         pygame.mouse.set_visible(True)  # make cursor invisible
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -532,12 +518,14 @@ class GameOver:
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: 
-                    if (mouse_x >= 240) and (mouse_x <= 560) and (mouse_y >= 550) and (mouse_y <= 610):
+                    if (mouse_pos[0] >= 240) and (mouse_pos[0] <= 560) and (mouse_pos[1] >= 550) and (mouse_pos[1] <= 610):
                         self.game_play.resetInitialState()
+                        self.resetInitialState()
                         self.game_state_manager.setState('game_play')
 
-                    if (mouse_x >= 345) and (mouse_x <= 465) and (mouse_y >= 620) and (mouse_y <= 670):
+                    if (mouse_pos[0] >= 345) and (mouse_pos[0] <= 465) and (mouse_pos[1] >= 620) and (mouse_pos[1] <= 670):
                         self.game_play.resetInitialState()
+                        self.resetInitialState()
                         self.game_state_manager.setState('menu')
 
         self.display.blit(image.gameplay_background, (0, 0))
@@ -553,9 +541,13 @@ class GameOver:
                 center=(SCREEN_WIDTH // 2, 280))
             self.display.blit(self.new_record, new_record_rect)
 
+            self.score = self.font_sub.render(
+                "S c o r e :  " + str(self.game_play.getScore()), True, DARK)
             score_rect = self.score.get_rect(center=(SCREEN_WIDTH // 2, 390))
             self.display.blit(self.score, score_rect)
 
+            self.missed_clicks = self.font_sub.render(
+                "M i s s e d :  " + str(self.game_play.getMissedClick()), True, DARK)
             missed_clicks_rect = self.missed_clicks.get_rect(center=(SCREEN_WIDTH // 2, 450))
             self.display.blit(self.missed_clicks, missed_clicks_rect)
 
@@ -566,14 +558,14 @@ class GameOver:
             menu_rect = self.menu.get_rect(center=(SCREEN_WIDTH // 2, 645))
             self.display.blit(self.menu, menu_rect)
 
-            if (mouse_x >= 240) and (mouse_x <= 560) and (mouse_y >= 550) and (mouse_y <= 610):
+            if (mouse_pos[0] >= 240) and (mouse_pos[0] <= 560) and (mouse_pos[1] >= 550) and (mouse_pos[1] <= 610):
                 self.play_again = self.font_sub.render(
                     "P l a y  A g a i n", True, WHITE)
             else:
                 self.play_again = self.font_sub.render(
                     "P l a y  A g a i n", True, GREY)
 
-            if (mouse_x >= 345) and (mouse_x <= 465) and (mouse_y >= 620) and (mouse_y <= 670):
+            if (mouse_pos[0] >= 345) and (mouse_pos[0] <= 465) and (mouse_pos[1] >= 620) and (mouse_pos[1] <= 670):
                 self.menu = self.font_sub.render("M e n u", True, WHITE)
             else:
                 self.menu = self.font_sub.render("M e n u", True, GREY)
