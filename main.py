@@ -22,18 +22,12 @@ SCREEN_HEIGHT = 800
 FPS = 60
 TEXT = "Smash The Zombie"
 
-# import assets
-# sound
-
 
 class SoundEffect:
     def __init__(self):
         pygame.mixer.init()
         self.typingSound = pygame.mixer.Sound("sounds/typing.wav")
         self.mainTrack = pygame.mixer.Sound("sounds/themesong.wav")
-        self.fireSound = pygame.mixer.Sound("sounds/fire.wav")
-        self.popSound = pygame.mixer.Sound("sounds/pop.wav")
-        self.hurtSound = pygame.mixer.Sound("sounds/hurt.wav")
         self.levelSound = pygame.mixer.Sound("sounds/point.wav")
 
     def playTyping(self):
@@ -41,24 +35,6 @@ class SoundEffect:
 
     def stopTyping(self):
         self.typingSound.stop()
-
-    def playFire(self):
-        self.fireSound.play()
-
-    def stopFire(self):
-        self.fireSound.stop()
-
-    def playPop(self):
-        self.popSound.play()
-
-    def stopPop(self):
-        self.popSound.stop()
-
-    def playHurt(self):
-        self.hurtSound.play()
-
-    def stopHurt(self):
-        self.hurtSound.stop()
 
     def playLevelUp(self):
         self.levelSound.play()
@@ -275,7 +251,7 @@ class GamePlay:
         self.display = display  # similar to screen variable
         self.game_state_manager = game_state_manager
 
-        self.TIMER = 15  # game play duration
+        self.TIMER = 30  # game play duration
         self.timer_countdown = self.TIMER
 
         self.NUM_ROW = 3
@@ -297,8 +273,7 @@ class GamePlay:
         self.zombies = []  # init a list to store current zombies on the screen
 
         self.ZOMBIE_LIFE_SPANS = 1 * 1000
-        self.ZOMBIE_RADIUS = max(
-            image.zombie.get_width(), image.zombie.get_height()) * 0.8
+        self.ZOMBIE_RADIUS = max(image.zombie.get_width(), image.zombie.get_height()) * 0.4
         self.GENERATE_ZOMBIE = pygame.USEREVENT + 1
         self.APPEAR_INTERVAL = 2 * 1000
 
@@ -313,7 +288,6 @@ class GamePlay:
         self.nb_of_click = 0
         self.score_value = 0
 
-    # if position equal with current zombie appear on the screen return true
     def checkExist(self, pos):
         for zombie in self.zombies:
             if pos == (zombie.x, zombie.y):
@@ -338,7 +312,7 @@ class GamePlay:
     def checkCollision(self, clickX, clickY, enemyX, enemyY):
         zombie_rect = image.zombie.get_rect()
         enemy_center = (
-            enemyX + zombie_rect.center[0], enemyY + zombie_rect.center[1])
+            enemyX + zombie_rect.center[0] - 20, enemyY + zombie_rect.center[1] - 50)
         distance = math.sqrt(math.pow(
             enemy_center[0] - clickX, 2) + (math.pow(enemy_center[1] - clickY, 2)))
         return distance < self.ZOMBIE_RADIUS
@@ -348,19 +322,24 @@ class GamePlay:
         for zombie in self.zombies:
             if self.checkCollision(click_pos[0], click_pos[1], zombie.x, zombie.y) and zombie.state == ZombieState.GO_UP:
                 self.score_value += 1
-                zombie.state = ZombieState.IS_SLAMED
+                zombie.change_state(ZombieState.IS_SLAMED)
                 sound_effects.playLevelUp()
                 zombie.draw()
                 zombie.hit_time = current_time
+            
+    def removePreviousZombie(self):
         for zombie in self.zombies:
-            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL:
+            current_time = pygame.time.get_ticks()
+            if zombie.need_go_down():
+                zombie.change_state(ZombieState.GO_DOWN)
+                zombie.draw()
+                zombie.go_down_time = current_time
+            if current_time - zombie.go_down_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.NONE:
+                self.zombies.remove(zombie)
+            if current_time - zombie.hit_time >= DELAY_BEFORE_REMOVAL and zombie.state == ZombieState.IS_SLAMED:
                 self.zombies.remove(zombie)
 
-    def removePreviosZombie(self):
-        for zombie in self.zombies:
-                self.zombies.remove(zombie)
-
-    def displaynbOfMissedClicks(self):
+    def displayMissedClicks(self):
         missed_clicks = self.font_sub.render(
             "M i s s e d :  " + str(self.nb_of_click - self.score_value), True, WHITE)
         text_rect = missed_clicks.get_rect(center=(120, 775))
@@ -395,7 +374,7 @@ class GamePlay:
                         self.checkZombiesCollision(click_pos)
 
             if event.type == self.GENERATE_ZOMBIE:
-                self.removePreviosZombie()
+                self.removePreviousZombie()
                 if len(self.zombies) < self.NUM_COL * self.NUM_ROW:
                     new_pos, time_of_birth = self.generateNextEnemyPos()
                     self.zombies.append(
@@ -404,6 +383,7 @@ class GamePlay:
             if event.type == pygame.USEREVENT:
                 self.timer_countdown -= 1
                 if self.timer_countdown <= 0:
+                    self.zombies.clear()
                     self.game_state_manager.setState('game_over')
 
             if event.type == pygame.KEYDOWN:
@@ -415,7 +395,7 @@ class GamePlay:
         self.display.blit(self.setting_icon, self.setting_icon_rect)
 
         self.drawZombies()
-        self.displaynbOfMissedClicks()
+        self.displayMissedClicks()
         self.displayScore()
         self.displayTime()
 
